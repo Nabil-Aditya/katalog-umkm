@@ -1,0 +1,16 @@
+# dependensi
+/node_modules
+
+# hasil build Next.js
+/.next/
+/out/
+
+# file rahasia: JANGAN di-commit
+.env
+.env.local
+.env*.local
+
+# lain-lain
+.DS_Store
+*.log
+.vercel
