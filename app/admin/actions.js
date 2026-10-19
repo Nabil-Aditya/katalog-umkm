@@ -205,3 +205,101 @@ export async function hapusProduk(formData) {
   redirect("/admin");
 }
 
+export async function buatDeskripsiAI(nama, kategori) {
+  const supabase = await buatKlienAdmin();
+
+  // Verifikasi admin login
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return {
+      sukses: false,
+      error: "Sesi admin telah berakhir. Silakan masuk kembali.",
+    };
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return {
+      sukses: false,
+      error: "Kunci API Gemini (GEMINI_API_KEY) belum diisi di file .env.local atau pengaturan Vercel.",
+    };
+  }
+
+  const namaClean = nama?.trim();
+  const kategoriClean = kategori?.trim() || "Produk UMKM";
+
+  if (!namaClean) {
+    return {
+      sukses: false,
+      error: "Nama produk wajib diisi terlebih dahulu.",
+    };
+  }
+
+  const prompt = `Kamu adalah copywriter profesional untuk produk UMKM Indonesia.
+Buatkan deskripsi produk yang menarik, ramah, dan menggugah minat pembeli.
+Nama Produk: ${namaClean}
+Kategori: ${kategoriClean}
+
+Aturan penulisan:
+- Panjang deskripsi antara 2 sampai 4 kalimat saja.
+- Gunakan bahasa Indonesia yang santun, alami, dan menjual.
+- Jangan gunakan format markdown (seperti tanda bintang, hashtag, atau cetak tebal).
+- Jangan berikan pilihan kalimat atau opsi lain, langsung berikan satu paragraf teks deskripsi saja.`;
+
+  const models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"];
+
+  let lastError = null;
+  for (const model of models) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [{ text: prompt }],
+              },
+            ],
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        lastError = data.error?.message || `Gagal menggunakan model ${model}`;
+        if (res.status === 404) {
+          continue;
+        }
+        return {
+          sukses: false,
+          error: lastError,
+        };
+      }
+
+      const deskripsi = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      if (deskripsi) {
+        return {
+          sukses: true,
+          deskripsi,
+        };
+      }
+    } catch (err) {
+      lastError = err.message;
+    }
+  }
+
+  return {
+    sukses: false,
+    error: lastError || "Gagal memproses deskripsi dengan AI. Silakan coba lagi.",
+  };
+}
+
