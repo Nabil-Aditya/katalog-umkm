@@ -1,19 +1,40 @@
 import KartuProduk from "@/components/KartuProduk";
+import FilterPencarian from "@/components/FilterPencarian";
 import { toko } from "@/lib/toko";
 import { buatKlienServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function HalamanKatalog() {
+export default async function HalamanKatalog({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const q = sp?.q?.trim() || "";
+  const kategori = sp?.kategori?.trim() || "";
+
   let daftarProduk = null;
+  let daftarKategori = [];
   let pesanError = null;
 
   try {
     const supabase = buatKlienServer();
-    const { data, error } = await supabase
-      .from("produk")
-      .select("*")
-      .order("id", { ascending: true });
+
+    // Ambil daftar kategori unik
+    const { data: kategoriRows } = await supabase.from("produk").select("kategori");
+    daftarKategori = Array.from(
+      new Set((kategoriRows || []).map((item) => item.kategori?.trim()).filter(Boolean))
+    ).sort();
+
+    // Query produk dengan filter pencarian dan kategori jika ada
+    let query = supabase.from("produk").select("*");
+
+    if (q) {
+      query = query.or(`nama.ilike.%${q}%,deskripsi.ilike.%${q}%`);
+    }
+
+    if (kategori) {
+      query = query.eq("kategori", kategori);
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
 
     if (error) {
       pesanError = error.message || "Gagal mengambil data produk dari database.";
@@ -23,6 +44,8 @@ export default async function HalamanKatalog() {
   } catch (err) {
     pesanError = err.message || "Gagal menghubungkan ke database Supabase.";
   }
+
+  const adaFilter = Boolean(q || kategori);
 
   return (
     <>
@@ -35,9 +58,17 @@ export default async function HalamanKatalog() {
       </section>
 
       <section aria-labelledby="judul-produk" className="flex flex-col gap-5">
-        <h2 id="judul-produk" className="text-xl font-bold">
-          Produk kami
-        </h2>
+        <div className="flex flex-col gap-4">
+          <h2 id="judul-produk" className="text-xl font-bold">
+            Produk kami
+          </h2>
+          <FilterPencarian
+            basePath="/"
+            q={q}
+            kategoriAktif={kategori}
+            daftarKategori={daftarKategori}
+          />
+        </div>
 
         {pesanError ? (
           <div className="rounded-xl border border-garis bg-permukaan p-4 text-bahaya">
@@ -49,6 +80,10 @@ export default async function HalamanKatalog() {
             {daftarProduk.map((produk) => (
               <KartuProduk key={produk.id} produk={produk} />
             ))}
+          </div>
+        ) : adaFilter ? (
+          <div className="rounded-2xl border border-garis p-8 text-center text-teks-lembut">
+            Tidak ada produk yang cocok dengan pencarianmu.
           </div>
         ) : (
           <p className="text-teks-lembut">Belum ada produk</p>
