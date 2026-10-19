@@ -18,7 +18,7 @@ export default function Tombol({ href, varian = "utama", className = "", childre
   }
 
   return (
-    <button className={kelas} {...props}>
+    <button className={kelas} suppressHydrationWarning {...props}>
       {children}
     </button>
   );

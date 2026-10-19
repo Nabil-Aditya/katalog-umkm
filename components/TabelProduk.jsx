@@ -1,3 +1,5 @@
+"use client";
+
 import { formatRupiah } from "@/lib/format";
 import Tombol from "@/components/Tombol";
 import { hapusProduk } from "@/app/admin/actions";
@@ -37,7 +39,14 @@ export default function TabelProduk({ daftarProduk }) {
                   <Tombol href={`/admin/produk/${produk.id}/ubah`} varian="garis">
                     Ubah
                   </Tombol>
-                  <form action={hapusProduk}>
+                  <form
+                    action={hapusProduk}
+                    onSubmit={(e) => {
+                      if (!confirm(`Yakin ingin menghapus produk "${produk.nama}"?`)) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
                     <input type="hidden" name="id" value={produk.id} />
                     <Tombol type="submit" varian="bahaya">
                       Hapus
