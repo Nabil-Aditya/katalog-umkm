@@ -250,7 +250,7 @@ Aturan penulisan:
 - Jangan gunakan format markdown (seperti tanda bintang, hashtag, atau cetak tebal).
 - Jangan berikan pilihan kalimat atau opsi lain, langsung berikan satu paragraf teks deskripsi saja.`;
 
-  const models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"];
+const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
 
   let lastError = null;
   for (const model of models) {
