@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { buatKlienAdmin } from "@/lib/supabase/admin";
 
 export async function login(formData) {
@@ -87,3 +88,120 @@ export async function gantiPassword(formData) {
 
   redirect("/admin/password?sukses=" + encodeURIComponent("Password berhasil diganti!"));
 }
+
+export async function tambahProduk(formData) {
+  const supabase = await buatKlienAdmin();
+
+  // Verifikasi admin login
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    redirect("/admin/login?error=" + encodeURIComponent("Sesi telah berakhir. Silakan masuk kembali."));
+  }
+
+  const nama = formData.get("nama")?.toString().trim();
+  const harga = parseInt(formData.get("harga"), 10);
+  const kategori = formData.get("kategori")?.toString().trim() || null;
+  const foto_url = formData.get("foto_url")?.toString().trim() || "/produk/kopi.svg";
+  const deskripsi = formData.get("deskripsi")?.toString().trim() || null;
+
+  if (!nama || isNaN(harga) || harga < 0) {
+    redirect("/admin/produk/baru?error=" + encodeURIComponent("Nama produk dan harga wajib diisi dengan benar."));
+  }
+
+  const { error } = await supabase.from("produk").insert([
+    {
+      nama,
+      harga,
+      kategori,
+      foto_url,
+      deskripsi,
+    },
+  ]);
+
+  if (error) {
+    redirect("/admin/produk/baru?error=" + encodeURIComponent(error.message || "Gagal menyimpan produk."));
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  redirect("/admin");
+}
+
+export async function ubahProduk(formData) {
+  const supabase = await buatKlienAdmin();
+
+  // Verifikasi admin login
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    redirect("/admin/login?error=" + encodeURIComponent("Sesi telah berakhir. Silakan masuk kembali."));
+  }
+
+  const id = formData.get("id");
+  const nama = formData.get("nama")?.toString().trim();
+  const harga = parseInt(formData.get("harga"), 10);
+  const kategori = formData.get("kategori")?.toString().trim() || null;
+  const foto_url = formData.get("foto_url")?.toString().trim() || "/produk/kopi.svg";
+  const deskripsi = formData.get("deskripsi")?.toString().trim() || null;
+
+  if (!id || !nama || isNaN(harga) || harga < 0) {
+    redirect(`/admin/produk/${id}/ubah?error=` + encodeURIComponent("Data produk tidak lengkap atau tidak valid."));
+  }
+
+  const { error } = await supabase
+    .from("produk")
+    .update({
+      nama,
+      harga,
+      kategori,
+      foto_url,
+      deskripsi,
+    })
+    .eq("id", id);
+
+  if (error) {
+    redirect(`/admin/produk/${id}/ubah?error=` + encodeURIComponent(error.message || "Gagal memperbarui produk."));
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  revalidatePath(`/produk/${id}`);
+  redirect("/admin");
+}
+
+export async function hapusProduk(formData) {
+  const supabase = await buatKlienAdmin();
+
+  // Verifikasi admin login
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    redirect("/admin/login?error=" + encodeURIComponent("Sesi telah berakhir. Silakan masuk kembali."));
+  }
+
+  const id = formData.get("id");
+  if (!id) {
+    redirect("/admin?error=" + encodeURIComponent("ID produk tidak valid."));
+  }
+
+  const { error } = await supabase.from("produk").delete().eq("id", id);
+
+  if (error) {
+    redirect("/admin?error=" + encodeURIComponent(error.message || "Gagal menghapus produk."));
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  redirect("/admin");
+}
+

@@ -26,6 +26,7 @@ export default async function HalamanDetailProduk({ params }) {
         src={produk.foto_url}
         alt={produk.nama}
         className="aspect-square w-full rounded-2xl border border-garis bg-permukaan object-cover"
+        referrerPolicy="no-referrer"
       />
       <div className="flex flex-col gap-4">
         <Link href="/" className="text-sm text-teks-lembut underline underline-offset-4 hover:text-utama">

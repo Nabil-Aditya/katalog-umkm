@@ -11,6 +11,7 @@ export default function KartuProduk({ produk }) {
         src={produk.foto_url}
         alt={produk.nama}
         className="aspect-square w-full bg-permukaan object-cover"
+        referrerPolicy="no-referrer"
       />
       <div className="flex flex-1 flex-col gap-2 p-3">
         <p className="text-xs text-teks-lembut">{produk.kategori}</p>
